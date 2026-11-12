@@ -8,6 +8,7 @@ import { classifyCandidates } from './classifier.mjs';
 import { buildTodoPrompt } from './prompt.mjs';
 import { collectBranchSources } from './branch-sources.mjs';
 import { extractDocumentCandidates } from './document-candidates.mjs';
+import { discoverOwnedDocuments } from './ownership.mjs';
 
 const exec = promisify(execFile);
 const DOC_NAMES = /^(readme|contributing|roadmap|plan|tasks?|todo|issues?|changelog|design|spec|architecture|project|项目|计划|任务|待办|需求|分工|进度)(\.|$|-|_)/i;
@@ -112,13 +113,16 @@ export async function scanProject(projectPath, options = {}) {
   ]);
   const aliases = [...normalizedIdentity(options), ghLogin.toLowerCase()].filter(Boolean);
   const identities = [...aliases, gitName?.toLowerCase(), gitEmail?.toLowerCase()].filter(Boolean);
-  const branches = await collectBranchSources(root, { identities });
+  const ownership = await discoverOwnedDocuments(root, [], identities);
+  const branches = await collectBranchSources(root, { identities, preferredPaths: ownership.paths });
   const files = branches.mainFiles.length ? [] : await docs(root);
   const primaryFiles = branches.mainFiles.length ? branches.mainFiles : files;
-  const identity = guessIdentity(primaryFiles, gitName, gitEmail, aliases);
+  const ownedAliases = await discoverOwnedDocuments(root, primaryFiles, identities);
+  const identity = guessIdentity(primaryFiles, gitName, gitEmail, [...aliases, ...ownedAliases.aliases]);
+  identity.ownedDocuments = ownership.paths.filter(path => primaryFiles.some(file => file.path === path)).slice(0, 20);
   if (ghLogin) identity.githubLogin = ghLogin;
-  // Prefer committed default-branch docs; working-tree documents are fallback.
-  const documentRows = extractDocumentCandidates(primaryFiles, identities);
+  // Reverse lookup by both Git identity and project-specific Chinese display name.
+  const documentRows = extractDocumentCandidates(primaryFiles, [...identities, ...ownedAliases.aliases]);
   const issuesPromise = githubIssues(root, remote, identities);
   const candidatesFrom = rows => rows.slice(0, 60).map(row => ({
     id: createHash('sha256').update(`${root}\n${row.source}\n${row.title}`).digest('hex').slice(0, 20),

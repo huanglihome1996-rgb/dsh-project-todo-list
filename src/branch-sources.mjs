@@ -4,8 +4,8 @@ import { resolve } from 'node:path';
 
 const exec = promisify(execFile);
 const MAX_BRANCHES = 20;
-const MAX_DOC_BYTES = 48 * 1024;
-const MAX_TOTAL_BYTES = 256 * 1024;
+const MAX_DOC_BYTES = 160 * 1024;
+const MAX_TOTAL_BYTES = 1024 * 1024;
 const DEFAULT_FILES = 32;
 const MAX_FILES = 40;
 const TEXT_FILE = /\.(?:md|mdx|txt|rst|adoc|ya?ml)$/i;
@@ -32,10 +32,18 @@ function docRank(path) {
   if (!TEXT_FILE.test(path)) return -1;
   const parts = path.split('/');
   const name = parts.at(-1);
+  // Asset notes and copied README files can crowd out actionable module plans.
+  if (parts.slice(0, -1).some(part => /^(?:assets?|images?|screenshots?|media|static)$/i.test(part))) return -1;
   if (parts.length === 1 && /^readme(?:[._-]|$)/i.test(name)) return 0;
-  if (parts.length === 1 && NAMED_DOC.test(name)) return 1;
-  if (parts.length > 1 && DOC_DIR.test(parts[0])) return NAMED_DOC.test(name) ? 2 : 3;
-  if (NAMED_DOC.test(name) && parts.length <= 3) return 4;
+  if (parts.length === 2 && /^docs?$/i.test(parts[0]) && /^(?:project-blueprint|feature-catalog)(?:[._-]|$)/i.test(name)) return 1;
+  if (parts.length >= 4 && /^docs?$/i.test(parts[0]) && /^modules?$/i.test(parts[1])) {
+    if (/\.v\d+(?:\.\d+)*\.(?:md|mdx|txt|rst|adoc|ya?ml)$/i.test(name)) return 2;
+    if (/^readme(?:[._-]|$)/i.test(name)) return 3;
+    return 4;
+  }
+  if (parts.length === 1 && NAMED_DOC.test(name)) return 5;
+  if (parts.length > 1 && DOC_DIR.test(parts[0])) return NAMED_DOC.test(name) ? 6 : 7;
+  if (NAMED_DOC.test(name) && parts.length <= 3) return 8;
   return -1;
 }
 function limitedFiles(value) {
@@ -43,7 +51,7 @@ function limitedFiles(value) {
   if (!Number.isFinite(value)) return DEFAULT_FILES;
   return Math.max(0, Math.min(MAX_FILES, Math.floor(value)));
 }
-async function readDocs(root, ref, maxFiles) {
+async function readDocs(root, ref, maxFiles, preferredPaths = []) {
   if (!maxFiles) return [];
   const listing = utf8(await git(root, ['ls-tree', '-rlz', ref], 2 * 1024 * 1024));
   if (listing === null) return [];
@@ -57,7 +65,8 @@ async function readDocs(root, ref, maxFiles) {
     const rank = docRank(path);
     if (rank >= 0) candidates.push({ path, rank });
   }
-  candidates.sort((a, b) => a.rank - b.rank || a.path.localeCompare(b.path));
+  const preferred = new Set(preferredPaths.filter(path => typeof path === 'string'));
+  candidates.sort((a, b) => (preferred.has(b.path) ? 1 : 0) - (preferred.has(a.path) ? 1 : 0) || a.rank - b.rank || a.path.localeCompare(b.path));
   const files = [];
   let remaining = MAX_TOTAL_BYTES;
   for (const { path } of candidates) {
@@ -95,7 +104,7 @@ async function getPaths(root, mainRef, ref) {
 }
 
 /** Inspect tracked documents in Git without changing the working tree or repository refs. */
-export async function collectBranchSources(root, { identities = [], maxFiles } = {}) {
+export async function collectBranchSources(root, { identities = [], maxFiles, preferredPaths = [] } = {}) {
   const empty = { mainBranch: null, currentBranch: null, mainFiles: [], auxiliary: [], branchHints: [] };
   if (typeof root !== 'string' || !root.trim()) return empty;
   root = resolve(root);
@@ -128,7 +137,7 @@ export async function collectBranchSources(root, { identities = [], maxFiles } =
   const currentBranch = current || mainBranch; // Detached HEAD still has usable main/default documentation.
   const cap = limitedFiles(maxFiles);
   const [mainFiles, refsBuffer] = await Promise.all([
-    readDocs(root, mainRef, cap),
+    readDocs(root, mainRef, cap, preferredPaths),
     git(root, ['for-each-ref', '--sort=-committerdate', `--count=${MAX_BRANCHES}`, '--format=%(refname)', 'refs/heads'], 32 * 1024)
   ]);
   const refs = clean(refsBuffer);
@@ -145,6 +154,19 @@ export async function collectBranchSources(root, { identities = [], maxFiles } =
     auxiliary.push({ branch, authorMatch: true, summary, paths, context });
   }
   const branchHints = auxiliary.filter(source => source.branch === currentBranch).map(({ branch, summary, paths, context }) => ({ branch, summary, paths, context }));
+  // Bounded personal authorship hints from main are context only, not task candidates.
+  if (allowed.size && mainBranch) {
+    const log = utf8(await git(root, ['log', '-24', '--format=%an%x00%ae%x00%s%x00', mainRef, '--'], 12 * 1024));
+    const fields = log?.split('\0') ?? [];
+    const matched = [];
+    for (let i = 0; i + 2 < fields.length && matched.length < 3; i += 3) {
+      const name = fields[i].trim().toLowerCase();
+      const email = fields[i + 1].trim().toLowerCase();
+      const subject = fields[i + 2].trim().slice(0, 300);
+      if (subject && (allowed.has(name) || allowed.has(email) || allowed.has(`${name} <${email}>`))) matched.push(subject);
+    }
+    if (matched.length) branchHints.push({ branch: mainBranch, summary: matched[0], paths: [], context: matched.join('\n').slice(0, 1000), authorMatch: true });
+  }
   // A small hint from main's recent history supplements document-derived tasks;
   // it is contextual evidence, not an unverified task candidate.
   const recentMain = clean(await git(root, ['log', '-4', '--format=%s', mainRef, '--'], 4 * 1024));

@@ -80,6 +80,31 @@ test('finds version, feature and release docs including Chinese names beyond 16 
   } finally { await rm(root, { recursive: true, force: true }); }
 });
 
+test('prioritizes module version plans and blueprint over asset README noise', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'branch-sources-modules-'));
+  try {
+    await git(root, 'init', '-q', '-b', 'main');
+    for (const dir of ['docs/modules/inventory', 'docs/modules/commerce', 'docs/assets']) await mkdir(join(root, dir), { recursive: true });
+    await writeFile(join(root, 'README.md'), '# Root');
+    await writeFile(join(root, 'docs', 'project-blueprint.md'), '# Overall blueprint');
+    await writeFile(join(root, 'docs', 'feature-catalog.md'), '# Features');
+    await writeFile(join(root, 'docs/modules/inventory/inventory-sync.v0.1.md'), '- [ ] inventory sync');
+    await writeFile(join(root, 'docs/modules/commerce/oms-fulfillment.v0.2.md'), '- [ ] fulfillment');
+    await writeFile(join(root, 'docs/modules/inventory/README.md'), 'Inventory module');
+    for (let i = 0; i < 55; i++) await writeFile(join(root, 'docs/assets', `README-${String(i).padStart(2, '0')}.md`), 'Asset evidence');
+    await git(root, 'add', '.');
+    await commit(root, 'Plan Owner', 'plan@example.com', 'Add module implementation plans');
+    const result = await collectBranchSources(root, { identities: ['plan@example.com'] });
+    assert.deepEqual(result.mainFiles.map(file => file.path), [
+      'README.md', 'docs/feature-catalog.md', 'docs/project-blueprint.md',
+      'docs/modules/commerce/oms-fulfillment.v0.2.md', 'docs/modules/inventory/inventory-sync.v0.1.md',
+      'docs/modules/inventory/README.md'
+    ]);
+    assert.ok(result.mainFiles.every(file => !file.path.startsWith('docs/assets/')));
+    assert.ok(result.branchHints.some(hint => hint.authorMatch === true && /module implementation plans/.test(hint.summary)));
+  } finally { await rm(root, { recursive: true, force: true }); }
+});
+
 test('falls back to current branch; tolerates non-repositories and limits documents', async () => {
   const root = await mkdtemp(join(tmpdir(), 'branch-sources-'));
   try {

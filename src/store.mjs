@@ -19,9 +19,9 @@ async function serialize(path, action) {
 async function load(path) {
   try {
     const value = JSON.parse(await readFile(fileFor(path), 'utf8'));
-    // Version 5 adds hierarchical feature/version extraction. Earlier results
+    // Version 6 prioritizes authored version specs and feature-gap tables. Earlier results
     // remain a migration source for status, but are not considered current.
-    return [3, 4, 5].includes(value?.version) ? value : null;
+    return [3, 4, 5, 6].includes(value?.version) ? value : null;
   }
   catch (error) { if (error.code === 'ENOENT') return null; throw error; }
 }
@@ -29,7 +29,7 @@ async function save(path, value) {
   await mkdir(LOCAL_DATA_DIR, { recursive: true });
   const filename = fileFor(path);
   const temporary = `${filename}.${process.pid}.${Date.now()}.tmp`;
-  await writeFile(temporary, JSON.stringify({ ...value, version: 5 }, null, 2), { flag: 'wx' });
+  await writeFile(temporary, JSON.stringify({ ...value, version: 6 }, null, 2), { flag: 'wx' });
   await rename(temporary, filename);
   return value;
 }
@@ -44,7 +44,7 @@ function view(path, cached) {
     activeSessionId: previous.get(todo.id)?.activeSessionId })) ?? [];
   // Old-version results are retained only for state migration, not shown as
   // current tasks until the revised version/feature analysis verifies them.
-  const visible = data.version === 5 ? data.todos : data.todos.filter(todo => todo.activeSessionId && todo.status === 'open');
+  const visible = data.version === 6 ? data.todos : data.todos.filter(todo => todo.activeSessionId && todo.status === 'open');
   const todos = partial ? [...verified, ...visible.filter(todo => !partial.some(item => item.id === todo.id))] : [...visible];
   const ranks = { urgent: 0, high: 1, normal: 2, low: 3 };
   todos.sort((a, b) => (ranks[a.priority] ?? 4) - (ranks[b.priority] ?? 4));
@@ -53,7 +53,7 @@ function view(path, cached) {
 export async function getProjectTodos(path, options = {}) {
   const projectPath = resolve(path);
   const cached = await load(projectPath);
-  const stale = cached?.version !== 5 || !Number.isFinite(Date.parse(cached.scannedAt)) || Date.now() - Date.parse(cached.scannedAt) >= REFRESH_INTERVAL_MS;
+  const stale = cached?.version !== 6 || !Number.isFinite(Date.parse(cached.scannedAt)) || Date.now() - Date.parse(cached.scannedAt) >= REFRESH_INTERVAL_MS;
   if (stale && !inflight.has(fileFor(projectPath)) && (!failures.has(fileFor(projectPath)) || options.force)) {
     void refreshProjectTodos(projectPath, options).catch(error => failures.set(fileFor(projectPath), error.message));
   }
@@ -125,7 +125,7 @@ export async function getActiveTodosForSession(sessionId) {
   for (const filename of files.filter(name => /^[a-f0-9]{64}\.json$/.test(name))) {
     try {
       const data = JSON.parse(await readFile(join(LOCAL_DATA_DIR, filename), 'utf8'));
-      if (![3, 4, 5].includes(data.version)) continue;
+      if (![3, 4, 5, 6].includes(data.version)) continue;
       for (const todo of data.todos ?? []) if (todo.activeSessionId === sessionId && todo.status === 'open') active.push({ projectPath: data.projectPath, todo });
     } catch {}
   }
