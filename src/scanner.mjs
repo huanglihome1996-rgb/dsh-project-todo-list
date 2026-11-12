@@ -5,6 +5,7 @@ import { homedir, userInfo } from 'node:os';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { classifyCandidates } from './classifier.mjs';
+import { buildTodoPrompt } from './prompt.mjs';
 
 const exec = promisify(execFile);
 const DOC_NAMES = /^(readme|contributing|roadmap|plan|tasks?|todo|issues?|changelog|design|spec|architecture|project|项目|计划|任务|待办|需求|分工|进度)(\.|$|-|_)/i;
@@ -105,9 +106,10 @@ export async function scanProject(projectPath, options = {}) {
   const root = resolve(projectPath);
   if (!(await stat(root)).isDirectory()) throw new Error('项目路径不是目录');
   // Only read project files. Persistent data is stored by store.mjs under DSH_HOME.
-  const [files, gitName, gitEmail, remote, ghLogin] = await Promise.all([
+  const [files, gitName, gitEmail, remote, ghLogin, branch] = await Promise.all([
     docs(root), git(root, 'config', 'user.name'), git(root, 'config', 'user.email'), git(root, 'remote', 'get-url', 'origin'),
-    exec('gh', ['api', 'user', '--jq', '.login'], { timeout: 3500, windowsHide: true }).then(result => result.stdout.trim()).catch(() => '')
+    exec('gh', ['api', 'user', '--jq', '.login'], { timeout: 3500, windowsHide: true }).then(result => result.stdout.trim()).catch(() => ''),
+    git(root, 'branch', '--show-current')
   ]);
   const aliases = [...normalizedIdentity(options), ghLogin.toLowerCase()].filter(Boolean);
   const identities = [...aliases, gitName?.toLowerCase(), gitEmail?.toLowerCase()].filter(Boolean);
@@ -119,14 +121,16 @@ export async function scanProject(projectPath, options = {}) {
     title: row.title, source: row.source, context: row.context, explicitAssignee: row.assigned, issue: row.issue
   }));
   const relevant = await classifyCandidates({ identity, candidates, classify: options.classify });
-  const todos = relevant.map(row => ({
-    id: row.id, title: row.title,
-    summary: `已核实归属与下一步 · ${row.source} · ${row.reason}`,
-    source: row.issue ? `${row.source} · issue #${row.issue}` : row.source,
-    recommendedPrompt: `请阅读项目待办来源 ${row.source} 及相关代码，核实当前状态后完成我接下来的任务：${row.title}。任务归属依据：${row.ownerEvidence}；尚待执行依据：${row.actionEvidence}。先提出具体实施方案，再完成必要修改与测试；不要改动与任务无关的内容。`,
-    status: 'open', confidence: 'high', ownerEvidence: row.ownerEvidence, actionEvidence: row.actionEvidence
-  }));
-  return { projectPath: root, projectName: basename(root), identity, todos, scannedAt: new Date().toISOString(), sources: files.map(file => file.path), remote: remote || null };
+  options = { ...options, branch };
+  const todos = relevant.map(row => {
+    const todo = { id: row.id, title: row.title,
+      summary: `${row.source} · ${row.reason}`,
+      source: row.issue ? `${row.source} · issue #${row.issue}` : row.source,
+      status: 'open', progress: row.progress, confidence: 'high',
+      ownerEvidence: row.ownerEvidence, actionEvidence: row.actionEvidence };
+    return { ...todo, recommendedPrompt: buildTodoPrompt(todo, { branch: options.branch }) };
+  });
+  return { projectPath: root, projectName: basename(root), branch: branch || null, identity, todos, scannedAt: new Date().toISOString(), sources: files.map(file => file.path), remote: remote || null };
 }
 
 export const LOCAL_DATA_DIR = join(process.env.DSH_HOME ?? join(homedir(), '.dsh'), 'project-todo');

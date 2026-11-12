@@ -24,7 +24,8 @@ export function parseDecisions(output, candidates, identity = {}) {
     if (/(?:已完成|已关闭|done|closed|cancelled|canceled)/i.test(item.actionEvidence)) continue;
     if (typeof item.reason !== 'string' || !item.reason.trim()) continue;
     used.add(item.id);
-    accepted.push({ ...candidate, ownerEvidence: item.ownerEvidence.trim(), actionEvidence: item.actionEvidence.trim(), reason: item.reason.trim().slice(0, 200) });
+    const title = typeof item.title === 'string' ? item.title.trim().replace(/[\r\n<>]/g, '').slice(0, 32) : '';
+    accepted.push({ ...candidate, title: title || candidate.title, progress: item.progress === 'in_progress' ? 'in_progress' : 'not_started', ownerEvidence: item.ownerEvidence.trim(), actionEvidence: item.actionEvidence.trim(), reason: item.reason.trim().slice(0, 200) });
   }
   return accepted;
 }
