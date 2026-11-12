@@ -1,0 +1,34 @@
+{
+  "format": 1,
+  "title": { "en": "Community project plugins", "zh": "社区项目插件" },
+  "description": {
+    "en": "Community-maintained DSH project productivity plugins; not an official DeepSeek index.",
+    "zh": "社区维护的 DSH 项目效率插件索引，非 DeepSeek 官方索引。"
+  },
+  "plugins": [
+    {
+      "name": "dsh-project-todo-list",
+      "title": { "en": "Project todo list", "zh": "项目待办列表" },
+      "description": {
+        "en": "AI-ranked personal next actions from default-branch project docs and GitHub issues, with local-only todo status and a compact new-session panel.",
+        "zh": "AI 结合项目主分支文档和 GitHub Issue 识别本人下一步待办，按优先级排序，并在新会话展示本地列表。"
+      },
+      "author": "huanglihome1996-rgb",
+      "icon": "https://raw.githubusercontent.com/huanglihome1996-rgb/dsh-project-todo-list/acd1650e0c7a083c309bbe22a4d89d6c705c4718/icon.svg",
+      "homepage": "https://github.com/huanglihome1996-rgb/dsh-project-todo-list#readme",
+      "repository": { "url": "https://github.com/huanglihome1996-rgb/dsh-project-todo-list" },
+      "versions": [
+        {
+          "version": "1.0.0",
+          "publishTimestamp": 1794473905,
+          "engines": { "dsh": "0.2.2-rc.1" },
+          "source": {
+            "type": "git",
+            "url": "https://github.com/huanglihome1996-rgb/dsh-project-todo-list",
+            "commit": "acd1650e0c7a083c309bbe22a4d89d6c705c4718"
+          }
+        }
+      ]
+    }
+  ]
+}
