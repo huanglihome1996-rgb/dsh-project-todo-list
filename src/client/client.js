@@ -6,8 +6,8 @@ window.__ModuleLoader__.load({
     const h = React.createElement;
     const styleId = '@local/project-todo/client.css';
     const css = `
-.project-todo-panel{order:10;box-sizing:border-box;width:min(calc(100% - 32px),var(--dsh-composer-card-max-width,920px));max-height:min(280px,38vh);margin:10px auto 0;overflow:hidden;border:1px solid var(--dsw-alias-border-l2,#dedee2);border-radius:var(--dsw-radius-lg,14px);background:var(--dsw-specific-menu,var(--dsw-alias-bg-module-platform,#fff));color:var(--dsw-alias-label-primary,#24242a);box-shadow:var(--dsw-elevation-panel,0 4px 18px #00000012);font:inherit}
-.project-todo-header{display:flex;align-items:center;gap:9px;min-height:42px;padding:8px 14px;border-bottom:1px solid var(--dsw-alias-border-l3,#eeeeef);font-size:13px}.project-todo-heading{font-weight:650;letter-spacing:.01em;white-space:nowrap}.project-todo-identity{max-width:34%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dsw-alias-label-secondary,#62636b);font-size:12px}.project-todo-count{margin-left:auto;white-space:nowrap;color:var(--dsw-alias-label-tertiary,#777984);font-size:12px}.project-todo-refresh{cursor:pointer;border:0;border-radius:7px;padding:5px 8px;background:transparent;color:var(--dsw-alias-label-secondary,#62636b);font:inherit;font-size:12px}.project-todo-refresh:hover,.project-todo-refresh:focus-visible{background:var(--dsw-alias-interactive-bg-hover,#f2f2f4);outline:none}.project-todo-refresh:disabled{opacity:.55;cursor:default}.project-todo-list{list-style:none;margin:0;padding:6px 7px 8px;max-height:226px;overflow-y:auto}.project-todo-list li{margin:0}.project-todo-item{position:relative;width:100%;display:flex;align-items:flex-start;gap:10px;cursor:pointer;border:1px solid transparent;border-radius:9px;padding:9px 8px;text-align:left;background:transparent;color:inherit;font:inherit;transition:background .15s,border-color .15s}.project-todo-item:hover,.project-todo-item:focus-visible{border-color:var(--dsw-alias-border-l2,#dedee2);background:var(--dsw-alias-interactive-bg-hover,#f2f2f4);outline:none}.project-todo-item.is-active{border-color:var(--dsw-alias-brand-normal,#5279ff);background:color-mix(in srgb,var(--dsw-alias-brand-normal,#5279ff) 8%,transparent)}.project-todo-item:disabled{cursor:wait;opacity:.72}.project-todo-dot{flex:none;width:7px;height:7px;margin-top:6px;border-radius:50%;background:var(--dsw-alias-label-tertiary,#8d8d95)}.project-todo-dot.is-progress{background:var(--dsw-alias-brand-normal,#5279ff);box-shadow:0 0 0 3px color-mix(in srgb,var(--dsw-alias-brand-normal,#5279ff) 14%,transparent)}.project-todo-text{display:flex;flex:1;flex-direction:column;gap:4px;min-width:0;font-size:13px}.project-todo-title{display:flex;align-items:center;gap:7px;min-width:0}.project-todo-text strong{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-weight:550}.project-todo-summary{overflow:hidden;color:var(--dsw-alias-label-secondary,#62636b);font-size:11px;line-height:1.35;white-space:nowrap;text-overflow:ellipsis}.project-todo-evidence{overflow:hidden;color:var(--dsw-alias-label-tertiary,#777984);font-size:11px;line-height:1.3;white-space:nowrap;text-overflow:ellipsis}.project-todo-badge{flex:none;border-radius:999px;padding:2px 6px;background:var(--dsw-alias-fill-l3,#f1f1f3);color:var(--dsw-alias-label-secondary,#62636b);font-size:10px;line-height:1.3;white-space:nowrap}.project-todo-badge.is-progress{background:color-mix(in srgb,var(--dsw-alias-brand-normal,#5279ff) 13%,transparent);color:var(--dsw-alias-brand-normal,#4167db)}.project-todo-arrow{flex:none;margin-top:3px;color:var(--dsw-alias-label-tertiary,#777984)}.project-todo-state,.project-todo-error{margin:0;padding:12px 14px 14px;color:var(--dsw-alias-label-tertiary,#777984);font-size:12px}.project-todo-error{color:#b33d3d}.project-todo-error button{border:0;cursor:pointer;background:none;color:inherit;text-decoration:underline;font:inherit}@media(max-width:560px){.project-todo-panel{width:calc(100% - 20px);max-height:42vh}.project-todo-header{padding-inline:11px}.project-todo-identity{display:none}.project-todo-list{max-height:34vh}.project-todo-title{gap:5px}.project-todo-badge{font-size:9px}.project-todo-summary,.project-todo-evidence{max-width:60vw}}
+.project-todo-panel{order:10;box-sizing:border-box;flex:0 0 auto!important;align-self:center;width:min(calc(100% - 32px),var(--dsh-composer-card-max-width,920px));min-height:50px;margin:10px auto 0;overflow:visible;border:1px solid var(--dsw-alias-border-l2,#e4e8f0);border-radius:12px;background:var(--dsw-alias-bg-module-platform,#fff);color:var(--dsw-alias-label-primary,#252b38);font:inherit}
+.project-todo-head{box-sizing:border-box;display:flex;align-items:center;gap:11px;min-height:49px;padding:9px 16px;background:var(--dsw-alias-bg-module-platform,#fff);border-radius:12px}.project-todo-heading{font-size:13px;font-weight:650;white-space:nowrap}.project-todo-count{border-radius:12px;padding:3px 10px;background:color-mix(in srgb,var(--dsw-alias-brand-normal,#6483d9) 10%,transparent);color:var(--dsw-alias-brand-normal,#526fc2);font-size:11px;white-space:nowrap}.project-todo-spacer{flex:1}.project-todo-control{border:0;background:none;color:var(--dsw-alias-label-secondary,#66758c);cursor:pointer;font:inherit;font-size:12px;padding:6px 8px;border-radius:7px;white-space:nowrap}.project-todo-control:hover,.project-todo-control:focus-visible{background:var(--dsw-alias-interactive-bg-hover,#f0f2f7);outline:none}.project-todo-control:disabled{opacity:.5;cursor:default}.project-todo-body{padding:13px 16px 14px;border-top:1px solid var(--dsw-alias-border-l3,#e9ecf1)}.project-todo-hint{margin:0 0 7px;font-size:11px;color:var(--dsw-alias-label-tertiary,#8994a6)}.project-todo-list{margin:0;padding:0;list-style:none;max-height:min(255px,38vh);overflow-y:auto}.project-todo-list li+li{margin-top:6px}.project-todo-item{box-sizing:border-box;display:flex;align-items:center;gap:12px;width:100%;min-height:66px;padding:10px 13px;border:1px solid var(--dsw-alias-border-l3,#e8ebf0);border-radius:10px;background:var(--dsw-alias-bg-module-platform,#fff);color:inherit;text-align:left;cursor:pointer;font:inherit}.project-todo-item:hover,.project-todo-item:focus-visible{border-color:var(--dsw-alias-brand-normal,#6483d9);background:var(--dsw-alias-interactive-bg-hover,#f6f8fc);outline:none}.project-todo-item.is-active{border-color:var(--dsw-alias-brand-normal,#6483d9)}.project-todo-item:disabled{opacity:.65;cursor:wait}.project-todo-dot{flex:none;width:8px;height:8px;border-radius:50%;background:var(--dsw-alias-label-tertiary,#9ca8ba)}.project-todo-dot.is-progress{background:var(--dsw-alias-brand-normal,#6483d9)}.project-todo-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}.project-todo-text strong{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.project-todo-summary{font-size:11px;color:var(--dsw-alias-label-tertiary,#8490a2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.project-todo-badge{flex:none;padding:4px 10px;border-radius:14px;background:var(--dsw-alias-bg-base,#f1f3f6);font-size:11px;color:var(--dsw-alias-label-secondary,#67758a)}.project-todo-badge.is-progress{color:var(--dsw-alias-brand-normal,#526fc2);background:color-mix(in srgb,var(--dsw-alias-brand-normal,#6483d9) 12%,transparent)}.project-todo-arrow{flex:none;font-size:16px;color:var(--dsw-alias-label-tertiary,#8590a2)}.project-todo-footer{margin:10px 1px 0;color:var(--dsw-alias-label-tertiary,#8490a2);font-size:11px}.project-todo-state,.project-todo-error{margin:0;padding:10px 16px 13px;font-size:12px;color:var(--dsw-alias-label-tertiary,#8590a2)}.project-todo-error{color:var(--dsw-alias-status-danger,#bd4040)}.project-todo-error button{border:0;background:none;color:inherit;text-decoration:underline;cursor:pointer}@media(max-width:650px){.project-todo-panel{width:calc(100% - 18px)}.project-todo-head{padding-inline:10px;gap:5px}.project-todo-body{padding:10px}.project-todo-item{padding:8px}.project-todo-badge{padding:3px 6px}}
 `;
     function ProjectTodoStyle() {
       useEffect(() => {
@@ -20,12 +20,6 @@ window.__ModuleLoader__.load({
       }, []);
       return null;
     }
-
-    function evidenceText(evidence) {
-      if (Array.isArray(evidence)) return evidence.filter(Boolean).join(' · ');
-      return evidence || '';
-    }
-
     function ProjectTodoPanel({ projectPath, sessionId, onChoose, fetchImpl = fetch }) {
       const [data, setData] = useState(null);
       const [loading, setLoading] = useState(false);
@@ -33,6 +27,7 @@ window.__ModuleLoader__.load({
       const [refreshing, setRefreshing] = useState(false);
       const [activating, setActivating] = useState('');
       const [activeId, setActiveId] = useState('');
+      const [expanded, setExpanded] = useState(false);
       const [version, setVersion] = useState(0);
       useEffect(() => {
         if (!projectPath) { setData(null); setError(''); return; }
@@ -50,7 +45,8 @@ window.__ModuleLoader__.load({
       }, [projectPath, version, fetchImpl]);
       if (!projectPath) return null;
       const todos = Array.isArray(data?.todos) ? data.todos : [];
-      const pending = todos.filter(todo => todo.status === 'open' || (!todo.status && todo.status !== 'done' && todo.status !== 'dismissed' && todo.status !== 'completed'));
+      const pending = todos.filter(todo => !['done', 'dismissed', 'completed'].includes(todo.status));
+      const visible = expanded ? pending : pending.slice(0, 1);
       async function refresh() {
         setRefreshing(true); setError('');
         try {
@@ -64,7 +60,7 @@ window.__ModuleLoader__.load({
       }
       async function chooseTodo(todo) {
         if (activating) return;
-        setActivating(todo.id); setActiveId(''); setError('');
+        setActivating(todo.id); setError('');
         try {
           const response = await fetchImpl('/api/project-todo/activate', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -78,33 +74,36 @@ window.__ModuleLoader__.load({
       }
       return h('section', { className: 'project-todo-panel', 'aria-label': '项目待办', 'data-project-todo': '' },
         h(ProjectTodoStyle),
-        h('header', { className: 'project-todo-header' },
-          h('span', { className: 'project-todo-heading' }, '项目待办'),
-          data?.identity?.name && h('span', { className: 'project-todo-identity', title: data.identity.name }, data.identity.name),
-          h('span', { className: 'project-todo-count' }, pending.length + ' 项待处理'),
-          h('button', { type: 'button', className: 'project-todo-refresh', onClick: refresh, disabled: refreshing || !!activating, 'aria-label': '刷新项目待办' }, refreshing ? '刷新中…' : '刷新')),
+        h('header', { className: 'project-todo-head' },
+          h('span', { className: 'project-todo-heading' }, '◉  项目待办'),
+          h('span', { className: 'project-todo-count' }, pending.length + ' 项待办'),
+          h('span', { className: 'project-todo-spacer' }),
+          pending.length > 1 && h('button', { type: 'button', className: 'project-todo-control', 'aria-expanded': expanded, onClick: () => setExpanded(value => !value) }, expanded ? '收起待办  ▴' : '查看待办  ▾'),
+          h('button', { type: 'button', className: 'project-todo-control', onClick: refresh, disabled: refreshing || !!activating, 'aria-label': '刷新项目待办' }, refreshing ? '刷新中…' : '⟳')),
         error && h('p', { className: 'project-todo-error', role: 'alert' }, error, ' ', h('button', { type: 'button', onClick: () => setVersion(v => v + 1) }, '重试')),
         loading && !data && h('p', { className: 'project-todo-state', role: 'status' }, '正在加载项目待办…'),
         !loading && !error && pending.length === 0 && h('p', { className: 'project-todo-state' }, '暂无待处理项目待办'),
-        pending.length > 0 && h('ul', { className: 'project-todo-list' }, pending.map(todo => {
-          const inProgress = todo.progress === 'in_progress';
-          const evidence = evidenceText(todo.evidence);
-          return h('li', { key: todo.id },
-            h('button', { type: 'button', className: 'project-todo-item' + (activeId === todo.id ? ' is-active' : ''), title: todo.summary || todo.title, onClick: () => chooseTodo(todo), disabled: !!activating },
-              h('span', { className: 'project-todo-dot' + (inProgress ? ' is-progress' : ''), 'aria-hidden': true }),
-              h('span', { className: 'project-todo-text' },
-                h('span', { className: 'project-todo-title' }, h('strong', null, todo.title || '未命名待办'), h('span', { className: 'project-todo-badge' + (inProgress ? ' is-progress' : '') }, inProgress ? '进行中' : '未开始')),
-                todo.summary && h('span', { className: 'project-todo-summary' }, todo.summary),
-                evidence && h('span', { className: 'project-todo-evidence' }, '依据：' + evidence)),
-              h('span', { className: 'project-todo-arrow', 'aria-hidden': true }, activating === todo.id ? '…' : '↗')));
-        })));
+        pending.length > 0 && h('div', { className: 'project-todo-body' },
+          h('p', { className: 'project-todo-hint' }, expanded ? '我的下一步待办' : '推荐先处理'),
+          h('ul', { className: 'project-todo-list' }, visible.map(todo => {
+            const inProgress = todo.progress === 'in_progress';
+            return h('li', { key: todo.id }, h('button', {
+              type: 'button', className: 'project-todo-item' + (activeId === todo.id ? ' is-active' : ''),
+              title: todo.summary || todo.title, onClick: () => chooseTodo(todo), disabled: !!activating
+            },
+            h('span', { className: 'project-todo-dot' + (inProgress ? ' is-progress' : ''), 'aria-hidden': true }),
+            h('span', { className: 'project-todo-text' },
+              h('strong', null, todo.title || '未命名待办'),
+              h('span', { className: 'project-todo-summary' }, (todo.source || todo.summary || '项目待办') + ' · 点击填入详细任务描述')),
+            h('span', { className: 'project-todo-badge' + (inProgress ? ' is-progress' : '') }, inProgress ? '进行中' : '未开始'),
+            h('span', { className: 'project-todo-arrow', 'aria-hidden': true }, activating === todo.id ? '…' : '↗')));
+          })),
+          h('p', { className: 'project-todo-footer' }, expanded ? '点击待办仅填入会话框，不会自动发送' : pending.length > 1 ? '展开后可查看其余 ' + (pending.length - 1) + ' 项 · 点击任务仅填入会话框，不会发送' : '点击任务仅填入会话框，不会自动发送')));
     }
     function ProjectTodoDock({ sessionId, useWorkspaces, useSessions, onChoose }) {
       const workspaces = useWorkspaces(value => value);
       const session = useSessions(value => value.byId?.[sessionId]);
       const workspace = workspaces?.items?.find(item => item.sessionIds?.includes(sessionId));
-      // DSH marks a newly created, not-yet-started conversation as blank.
-      // Unmount on the first submitted turn; never show the list in existing chats.
       if (session?.blank !== true) return null;
       return h(ProjectTodoPanel, { projectPath: workspace?.path || session.cwd, sessionId, onChoose });
     }
