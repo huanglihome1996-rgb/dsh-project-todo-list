@@ -14,7 +14,7 @@ const candidates = [
 
 test('AI must cite ownership and actionable next step, mere mentions cannot qualify', async () => {
   const result = await classifyCandidates({ identity, candidates, classify: async () => ({ decisions: [
-    { id: 'owned', include: true, ownerEvidence: '负责人: 小王', actionEvidence: '- [ ] 下一步完成 API 并测试', reason: '用户负责且待办' },
+    { id: 'owned', include: true, ownerEvidence: '负责人: 小王', actionEvidence: '- [ ] 下一步完成 API 并测试', reason: '用户负责且待办', ownershipConfidence: 'high', isActionable: true, priority: 'high', effort: 'small' },
     { id: 'mention', include: true, ownerEvidence: '@小王', actionEvidence: '- [ ] 接口测试由小李完成', reason: '提及用户' },
     { id: 'other', include: true, ownerEvidence: '负责人: 小李', actionEvidence: '- [ ] 设计稿', reason: '他人负责' },
     { id: 'complete', include: true, ownerEvidence: '负责人: 小王', actionEvidence: '验收已完成', reason: '已完成' }
@@ -24,12 +24,26 @@ test('AI must cite ownership and actionable next step, mere mentions cannot qual
 
 test('concise title, progress and detailed prompt mention branch/docs/blockers', async () => {
   const result = await classifyCandidates({ identity, candidates: [candidates[0]], classify: async () => ({ decisions: [
-    { id: 'owned', include: true, title: '完善 API', progress: 'in_progress', ownerEvidence: '负责人: 小王', actionEvidence: '- [ ] 下一步完成 API 并测试', reason: '进行中' }
+    { id: 'owned', include: true, title: '完善 API', progress: 'in_progress', ownerEvidence: '负责人: 小王', actionEvidence: '- [ ] 下一步完成 API 并测试', reason: '进行中', ownershipConfidence: 'high', isActionable: true, priority: 'urgent', effort: 'large' }
   ] }) });
   assert.equal(result[0].title, '完善 API');
   assert.equal(result[0].progress, 'in_progress');
   const prompt = buildTodoPrompt({ ...result[0], source: 'docs/PLAN.md:8' }, { branch: 'feature/api' });
   for (const marker of ['feature/api', '项目文档', '测试', '先问我', '验收标准']) assert.match(prompt, new RegExp(marker));
+});
+
+test('AI priority ordering and effort estimates are normalized', async () => {
+  const rows = [
+    { id: 'a', title: '普通任务', context: '小王负责普通任务；下一步执行普通任务。' },
+    { id: 'b', title: '紧急任务', context: '小王负责紧急任务；下一步执行紧急任务。' }
+  ];
+  const result = await classifyCandidates({ identity, candidates: rows, classify: async ({ candidates: batch }) => ({ decisions: batch.map(item => ({
+    id: item.id, include: true, isActionable: true, ownershipConfidence: 'medium',
+    ownerEvidence: '小王负责', actionEvidence: '下一步执行', reason: '明确下一步',
+    priority: item.id === 'b' ? 'urgent' : 'normal', effort: item.id === 'b' ? 'large' : 'small'
+  })) }) });
+  assert.deepEqual(result.map(row => row.id), ['b', 'a']);
+  assert.equal(result[0].effort, 'large');
 });
 
 test('completion decision rejects malformed responses and preserves blockers', () => {

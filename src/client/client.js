@@ -9,12 +9,15 @@ window.__ModuleLoader__.load({
 .project-todo-panel{order:10;box-sizing:border-box;flex:0 0 auto!important;align-self:center;width:min(calc(100% - 32px),var(--dsh-composer-card-max-width,920px));min-height:50px;margin:10px auto 0;overflow:visible;border:1px solid var(--dsw-alias-border-l2,#e4e8f0);border-radius:12px;background:var(--dsw-alias-bg-module-platform,#fff);color:var(--dsw-alias-label-primary,#252b38);font:inherit}
 .project-todo-head{box-sizing:border-box;display:flex;align-items:center;gap:11px;min-height:49px;padding:9px 16px;background:var(--dsw-alias-bg-module-platform,#fff);border-radius:12px}.project-todo-heading{font-size:13px;font-weight:650;white-space:nowrap}.project-todo-count{border-radius:12px;padding:3px 10px;background:color-mix(in srgb,var(--dsw-alias-brand-normal,#6483d9) 10%,transparent);color:var(--dsw-alias-brand-normal,#526fc2);font-size:11px;white-space:nowrap}.project-todo-spacer{flex:1}.project-todo-control{border:0;background:none;color:var(--dsw-alias-label-secondary,#66758c);cursor:pointer;font:inherit;font-size:12px;padding:6px 8px;border-radius:7px;white-space:nowrap}.project-todo-control:hover,.project-todo-control:focus-visible{background:var(--dsw-alias-interactive-bg-hover,#f0f2f7);outline:none}.project-todo-control:disabled{opacity:.5;cursor:default}.project-todo-body{padding:13px 16px 14px;border-top:1px solid var(--dsw-alias-border-l3,#e9ecf1)}.project-todo-hint{margin:0 0 7px;font-size:11px;color:var(--dsw-alias-label-tertiary,#8994a6)}.project-todo-list{margin:0;padding:0;list-style:none;max-height:min(255px,38vh);overflow-y:auto}.project-todo-list li+li{margin-top:6px}.project-todo-item{box-sizing:border-box;display:flex;align-items:center;gap:12px;width:100%;min-height:66px;padding:10px 13px;border:1px solid var(--dsw-alias-border-l3,#e8ebf0);border-radius:10px;background:var(--dsw-alias-bg-module-platform,#fff);color:inherit;text-align:left;cursor:pointer;font:inherit}.project-todo-item:hover,.project-todo-item:focus-visible{border-color:var(--dsw-alias-brand-normal,#6483d9);background:var(--dsw-alias-interactive-bg-hover,#f6f8fc);outline:none}.project-todo-item.is-active{border-color:var(--dsw-alias-brand-normal,#6483d9)}.project-todo-item:disabled{opacity:.65;cursor:wait}.project-todo-dot{flex:none;width:8px;height:8px;border-radius:50%;background:var(--dsw-alias-label-tertiary,#9ca8ba)}.project-todo-dot.is-progress{background:var(--dsw-alias-brand-normal,#6483d9)}.project-todo-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}.project-todo-text strong{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.project-todo-summary{font-size:11px;color:var(--dsw-alias-label-tertiary,#8490a2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.project-todo-badge{flex:none;padding:4px 10px;border-radius:14px;background:var(--dsw-alias-bg-base,#f1f3f6);font-size:11px;color:var(--dsw-alias-label-secondary,#67758a)}.project-todo-badge.is-progress{color:var(--dsw-alias-brand-normal,#526fc2);background:color-mix(in srgb,var(--dsw-alias-brand-normal,#6483d9) 12%,transparent)}.project-todo-arrow{flex:none;font-size:16px;color:var(--dsw-alias-label-tertiary,#8590a2)}.project-todo-footer{margin:10px 1px 0;color:var(--dsw-alias-label-tertiary,#8490a2);font-size:11px}.project-todo-state,.project-todo-error{margin:0;padding:10px 16px 13px;font-size:12px;color:var(--dsw-alias-label-tertiary,#8590a2)}.project-todo-error{color:var(--dsw-alias-status-danger,#bd4040)}.project-todo-error button{border:0;background:none;color:inherit;text-decoration:underline;cursor:pointer}@media(max-width:650px){.project-todo-panel{width:calc(100% - 18px)}.project-todo-head{padding-inline:10px;gap:5px}.project-todo-body{padding:10px}.project-todo-item{padding:8px}.project-todo-badge{padding:3px 6px}}
 `;
+    const indicatorCss = `
+.project-todo-meta{display:flex;align-items:center;gap:7px;flex:none}.project-todo-effort{display:inline-flex;align-items:center;gap:5px;color:var(--dsw-alias-label-secondary,#66758c);font-size:10px;white-space:nowrap}.project-todo-effort-bars{display:inline-flex;align-items:flex-end;gap:2px;height:12px}.project-todo-effort-bar{width:3px;height:6px;border-radius:2px;background:var(--dsw-alias-border-l2,#dfe4ec)}.project-todo-effort-bar:nth-child(2){height:8px}.project-todo-effort-bar:nth-child(3){height:10px}.project-todo-effort-bar:nth-child(4){height:12px}.project-todo-effort-bar.is-filled{background:var(--dsw-alias-brand-normal,#6483d9)}.project-todo-priority{border-radius:5px;padding:3px 5px;background:var(--dsw-alias-bg-module-hover,#f3f5f9);color:var(--dsw-alias-label-secondary,#66758c);font-size:10px;white-space:nowrap}.project-todo-priority.is-urgent{background:color-mix(in srgb,#e35d6a 12%,transparent);color:#c84655}.project-todo-priority.is-high{background:color-mix(in srgb,#dc8a35 13%,transparent);color:#b56a1d}
+`;
     function ProjectTodoStyle() {
       useEffect(() => {
         if (document.querySelector('style[data-plugin-css="' + styleId + '"]')) return;
         const style = document.createElement('style');
         style.dataset.pluginCss = styleId;
-        style.textContent = css;
+        style.textContent = css + indicatorCss;
         document.head.appendChild(style);
         return () => style.remove();
       }, []);
@@ -45,7 +48,15 @@ window.__ModuleLoader__.load({
       }, [projectPath, version, fetchImpl]);
       if (!projectPath) return null;
       const todos = Array.isArray(data?.todos) ? data.todos : [];
-      const pending = todos.filter(todo => !['done', 'dismissed', 'completed'].includes(todo.status));
+      const priorityRank = { urgent: 0, high: 1, normal: 2, low: 3 };
+      const priorityLabel = { urgent: '紧急', high: '高', normal: '普通', low: '低' };
+      const effortRank = { small: 1, medium: 2, large: 3, very_large: 4 };
+      const effortLabel = { small: '轻量', medium: '中等', large: '较大', very_large: '大型' };
+      const pending = todos
+        .filter(todo => !['done', 'dismissed', 'completed'].includes(todo.status))
+        .map((todo, index) => ({ todo, index }))
+        .sort((a, b) => (priorityRank[a.todo.priority] ?? 99) - (priorityRank[b.todo.priority] ?? 99) || a.index - b.index)
+        .map(entry => entry.todo);
       const visible = expanded ? pending : pending.slice(0, 1);
       async function refresh() {
         setRefreshing(true); setError('');
@@ -87,6 +98,8 @@ window.__ModuleLoader__.load({
           h('p', { className: 'project-todo-hint' }, expanded ? '我的下一步待办' : '推荐先处理'),
           h('ul', { className: 'project-todo-list' }, visible.map(todo => {
             const inProgress = todo.progress === 'in_progress';
+            const effort = effortRank[todo.effort] || 0;
+            const priority = priorityLabel[todo.priority];
             return h('li', { key: todo.id }, h('button', {
               type: 'button', className: 'project-todo-item' + (activeId === todo.id ? ' is-active' : ''),
               title: todo.summary || todo.title, onClick: () => chooseTodo(todo), disabled: !!activating
@@ -96,6 +109,10 @@ window.__ModuleLoader__.load({
               h('strong', null, todo.title || '未命名待办'),
               h('span', { className: 'project-todo-summary' }, (todo.source || todo.summary || '项目待办') + ' · 点击填入详细任务描述')),
             h('span', { className: 'project-todo-badge' + (inProgress ? ' is-progress' : '') }, inProgress ? '进行中' : '未开始'),
+            h('span', { className: 'project-todo-meta' },
+              effort > 0 && h('span', { className: 'project-todo-effort', title: '工作量：' + effortLabel[todo.effort] },
+                h('span', { className: 'project-todo-effort-bars', 'aria-hidden': true }, [1, 2, 3, 4].map(level => h('i', { key: level, className: 'project-todo-effort-bar' + (level <= effort ? ' is-filled' : '') }))), effortLabel[todo.effort]),
+              priority && h('span', { className: 'project-todo-priority is-' + todo.priority, title: '优先级：' + priorityLabel[todo.priority] }, priorityLabel[todo.priority])),
             h('span', { className: 'project-todo-arrow', 'aria-hidden': true }, activating === todo.id ? '…' : '↗')));
           })),
           h('p', { className: 'project-todo-footer' }, expanded ? '点击待办仅填入会话框，不会自动发送' : pending.length > 1 ? '展开后可查看其余 ' + (pending.length - 1) + ' 项 · 点击任务仅填入会话框，不会发送' : '点击任务仅填入会话框，不会自动发送')));

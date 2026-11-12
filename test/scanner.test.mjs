@@ -15,7 +15,7 @@ test('recognizes assigned and unassigned document tasks without writing project 
     await writeFile(file, original);
     const options = { name: 'test-owner', classify: async ({ candidates }) => ({ decisions: candidates.map(row => ({
       id: row.id, include: row.title === '修复会话缓存', ownerEvidence: 'owner: test-owner',
-      actionEvidence: '- [ ] 修复会话缓存', reason: '明确负责且未完成'
+      actionEvidence: '- [ ] 修复会话缓存', reason: '明确负责且未完成', ownershipConfidence: 'high', isActionable: true, priority: 'high', effort: 'small'
     })) }) };
     const result = await scanProject(root, options);
     assert.deepEqual(result.todos.map(todo => todo.title), ['修复会话缓存']);

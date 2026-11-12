@@ -16,7 +16,7 @@ test('authenticated connection route implements local project todo API', async (
       agentDefaultModel: { currentSelection: () => ({ provider: 'test', model: 'test' }) },
       llm: { async prepareCall(config) { return { config, async *stream(request) {
         const candidates = JSON.parse(request.messages[0].content[0].text).candidates;
-        yield { type: 'text-delta', index: 0, text: JSON.stringify({ decisions: candidates.map(item => ({ id: item.id, include: true, ownerEvidence: 'owner: test-owner', actionEvidence: '- [ ] 整理发布流程', reason: 'assigned' })) }) };
+        yield { type: 'text-delta', index: 0, text: JSON.stringify({ decisions: candidates.map(item => ({ id: item.id, include: true, ownerEvidence: 'owner: test-owner', actionEvidence: '- [ ] 整理发布流程', reason: 'assigned', ownershipConfidence: 'high', isActionable: true, priority: 'high', effort: 'medium' })) }) };
         yield { type: 'finish', reason: { kind: 'stop' } };
       } }; } }
     }, { name: 'test-owner' });

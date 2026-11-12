@@ -6,6 +6,7 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { classifyCandidates } from './classifier.mjs';
 import { buildTodoPrompt } from './prompt.mjs';
+import { collectBranchSources } from './branch-sources.mjs';
 
 const exec = promisify(execFile);
 const DOC_NAMES = /^(readme|contributing|roadmap|plan|tasks?|todo|issues?|changelog|design|spec|architecture|project|项目|计划|任务|待办|需求|分工|进度)(\.|$|-|_)/i;
@@ -52,10 +53,7 @@ async function githubIssues(root, remote, identities) {
     const { stdout } = await exec('gh', ['issue', 'list', '--state', 'open', '--limit', '60', '--json', 'number,title,assignees,url,body'], {
       cwd: root, timeout: 7000, windowsHide: true, maxBuffer: 512 * 1024
     });
-    return JSON.parse(stdout).filter(issue => {
-      const assigned = issue.assignees?.map(person => person.login.toLowerCase()) ?? [];
-      return assigned.length === 0 || assigned.some(login => identities.includes(login));
-    }).map(issue => ({
+    return JSON.parse(stdout).map(issue => ({
       title: issue.title.slice(0, 150), source: issue.url, issue: issue.number,
       assigned: issue.assignees?.some(person => identities.includes(person.login.toLowerCase())) ?? false,
       others: false,
@@ -115,22 +113,32 @@ export async function scanProject(projectPath, options = {}) {
   const identities = [...aliases, gitName?.toLowerCase(), gitEmail?.toLowerCase()].filter(Boolean);
   const identity = guessIdentity(files, gitName, gitEmail, aliases);
   if (ghLogin) identity.githubLogin = ghLogin;
-  const lines = [...taskLines(files, identities), ...await githubIssues(root, remote, identities)];
-  const candidates = lines.filter(row => !row.others).slice(0, 60).map(row => ({
+  const branches = await collectBranchSources(root, { identities });
+  // Prefer the committed default-branch plan. Working-tree documents are fallback
+  // only when the repository has no readable default-branch project documents.
+  const primaryFiles = branches.mainFiles.length ? branches.mainFiles : files;
+  const lines = [...taskLines(primaryFiles, identities), ...await githubIssues(root, remote, identities)];
+  const candidates = lines.slice(0, 60).map(row => ({
     id: createHash('sha256').update(`${root}\n${row.source}\n${row.title}`).digest('hex').slice(0, 20),
-    title: row.title, source: row.source, context: row.context, explicitAssignee: row.assigned, issue: row.issue
+    title: row.title, source: row.source,
+    context: [row.context, ...branches.auxiliary.filter(branch => branch.context.toLowerCase().includes(row.title.toLowerCase().slice(0, 8)))
+      .slice(0, 2).map(branch => `辅助分支 ${branch.branch}（本人提交）：${branch.summary}`)].join('\n').slice(0, 2500),
+    explicitAssignee: row.assigned, issue: row.issue
   }));
-  const relevant = await classifyCandidates({ identity, candidates, classify: options.classify });
+  const branchContext = { mainBranch: branches.mainBranch, currentBranch: branches.currentBranch,
+    auxiliary: branches.auxiliary.slice(0, 4).map(({ branch, summary, paths, context }) => ({ branch, summary, paths: paths.slice(0, 10), context: context.slice(0, 300) })) };
+  const relevant = await classifyCandidates({ identity, candidates, classify: options.classify, branchContext });
   options = { ...options, branch };
   const todos = relevant.map(row => {
     const todo = { id: row.id, title: row.title,
       summary: `${row.source} · ${row.reason}`,
       source: row.issue ? `${row.source} · issue #${row.issue}` : row.source,
-      status: 'open', progress: row.progress, confidence: 'high',
-      ownerEvidence: row.ownerEvidence, actionEvidence: row.actionEvidence };
+      status: 'open', progress: row.progress, priority: row.priority, effort: row.effort,
+      confidence: row.ownershipConfidence, ownerEvidence: row.ownerEvidence, actionEvidence: row.actionEvidence };
     return { ...todo, recommendedPrompt: buildTodoPrompt(todo, { branch: options.branch }) };
   });
-  return { projectPath: root, projectName: basename(root), branch: branch || null, identity, todos, scannedAt: new Date().toISOString(), sources: files.map(file => file.path), remote: remote || null };
+  return { projectPath: root, projectName: basename(root), branch: branch || null, mainBranch: branches.mainBranch,
+    identity, todos, scannedAt: new Date().toISOString(), sources: primaryFiles.map(file => file.path), remote: remote || null };
 }
 
 export const LOCAL_DATA_DIR = join(process.env.DSH_HOME ?? join(homedir(), '.dsh'), 'project-todo');
