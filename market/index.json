@@ -19,6 +19,16 @@
       "repository": { "url": "https://github.com/huanglihome1996-rgb/dsh-project-todo-list" },
       "versions": [
         {
+          "version": "1.2.0",
+          "publishTimestamp": 1794477049,
+          "engines": { "dsh": "0.2.2-rc.1" },
+          "source": {
+            "type": "git",
+            "url": "https://github.com/huanglihome1996-rgb/dsh-project-todo-list",
+            "commit": "c1190933b9cf0171cce7ddae5d33efd967fdecb5"
+          }
+        },
+        {
           "version": "1.1.0",
           "publishTimestamp": 1794475044,
           "engines": { "dsh": "0.2.2-rc.1" },
