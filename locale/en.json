@@ -1,6 +1,6 @@
 {
   "meta": {
     "title": "Project todos",
-    "description": "Suggest local project tasks from documentation and GitHub issues without writing data into the repository."
+    "description": "AI-ranked personal next actions from default-branch docs, GitHub issues and authored branches, stored only in DSH local data."
   }
 }

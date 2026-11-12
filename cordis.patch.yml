@@ -1,4 +1,4 @@
 - insert:
     - id: local-project-todo
-      name: '@local/project-todo'
+      name: 'dsh-project-todo-list'
       config: {}
