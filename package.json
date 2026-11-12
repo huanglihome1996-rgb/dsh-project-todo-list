@@ -1,6 +1,6 @@
 {
   "name": "dsh-project-todo-list",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "license": "MIT",
   "engines": { "node": ">=22", "dsh": "0.2.2-rc.1" },
   "keywords": ["dsh-plugin", "deepseek-harness", "project-todo", "ai", "github-issues"],

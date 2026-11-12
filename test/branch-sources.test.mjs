@@ -54,6 +54,32 @@ test('reads default-branch docs from Git, filters branches by recent author, and
   } finally { await rm(root, { recursive: true, force: true }); }
 });
 
+test('finds version, feature and release docs including Chinese names beyond 16 defaults', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'branch-sources-wide-'));
+  try {
+    await git(root, 'init', '-q', '-b', 'main');
+    for (const dir of ['versions', 'features', 'release', 'milestone', 'notes']) await mkdir(join(root, dir));
+    for (let i = 1; i <= 20; i++) await writeFile(join(root, 'versions', `v${String(i).padStart(2, '0')}.md`), `Version ${i}`);
+    await writeFile(join(root, 'features', 'new-ui.md'), 'Feature work');
+    await writeFile(join(root, 'release', '2027.md'), 'Release plan');
+    await writeFile(join(root, 'milestone', 'Q1.md'), 'Milestone work');
+    await writeFile(join(root, 'notes', '需求.md'), 'Chinese requirement');
+    await writeFile(join(root, 'ignore.md'), 'Not named or in document directory');
+    await writeFile(join(root, 'README.md'), '# Main');
+    await git(root, 'add', '.');
+    await commit(root, 'Main Author', 'main@example.com', 'Document planned features');
+    const result = await collectBranchSources(root);
+    assert.equal(result.mainFiles.length, 25);
+    assert.equal(result.mainFiles[0].path, 'README.md');
+    for (const path of ['features/new-ui.md', 'release/2027.md', 'milestone/Q1.md', 'notes/需求.md', 'versions/v20.md']) {
+      assert.ok(result.mainFiles.some(file => file.path === path), path);
+    }
+    assert.ok(!result.mainFiles.some(file => file.path === 'ignore.md'));
+    assert.match(result.branchHints.at(-1).context, /Document planned features/);
+    assert.ok((await collectBranchSources(root, { maxFiles: 100 })).mainFiles.length <= 40);
+  } finally { await rm(root, { recursive: true, force: true }); }
+});
+
 test('falls back to current branch; tolerates non-repositories and limits documents', async () => {
   const root = await mkdtemp(join(tmpdir(), 'branch-sources-'));
   try {

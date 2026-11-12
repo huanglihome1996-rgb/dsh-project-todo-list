@@ -19,9 +19,9 @@ async function serialize(path, action) {
 async function load(path) {
   try {
     const value = JSON.parse(await readFile(fileFor(path), 'utf8'));
-    // Older decisions lacked priority/effort and were validated by different rules.
-    // Keep them only as a migration source for manual state, not as fresh AI results.
-    return [3, 4].includes(value?.version) ? value : null;
+    // Version 5 adds hierarchical feature/version extraction. Earlier results
+    // remain a migration source for status, but are not considered current.
+    return [3, 4, 5].includes(value?.version) ? value : null;
   }
   catch (error) { if (error.code === 'ENOENT') return null; throw error; }
 }
@@ -29,7 +29,7 @@ async function save(path, value) {
   await mkdir(LOCAL_DATA_DIR, { recursive: true });
   const filename = fileFor(path);
   const temporary = `${filename}.${process.pid}.${Date.now()}.tmp`;
-  await writeFile(temporary, JSON.stringify({ ...value, version: 4 }, null, 2), { flag: 'wx' });
+  await writeFile(temporary, JSON.stringify({ ...value, version: 5 }, null, 2), { flag: 'wx' });
   await rename(temporary, filename);
   return value;
 }
@@ -42,9 +42,10 @@ function view(path, cached) {
     status: previous.get(todo.id)?.status ?? todo.status,
     progress: previous.get(todo.id)?.progress === 'in_progress' ? 'in_progress' : todo.progress,
     activeSessionId: previous.get(todo.id)?.activeSessionId })) ?? [];
-  // Keep the previously verified list visible while scanning: a later batch can
-  // discover a higher-priority item without making existing items disappear.
-  const todos = partial ? [...verified, ...data.todos.filter(todo => !partial.some(item => item.id === todo.id))] : [...data.todos];
+  // Old-version results are retained only for state migration, not shown as
+  // current tasks until the revised version/feature analysis verifies them.
+  const visible = data.version === 5 ? data.todos : data.todos.filter(todo => todo.activeSessionId && todo.status === 'open');
+  const todos = partial ? [...verified, ...visible.filter(todo => !partial.some(item => item.id === todo.id))] : [...visible];
   const ranks = { urgent: 0, high: 1, normal: 2, low: 3 };
   todos.sort((a, b) => (ranks[a.priority] ?? 4) - (ranks[b.priority] ?? 4));
   return { ...data, todos, refreshing: inflight.has(key), ...(failures.has(key) ? { refreshError: failures.get(key) } : {}) };
@@ -52,7 +53,7 @@ function view(path, cached) {
 export async function getProjectTodos(path, options = {}) {
   const projectPath = resolve(path);
   const cached = await load(projectPath);
-  const stale = cached?.version !== 4 || !Number.isFinite(Date.parse(cached.scannedAt)) || Date.now() - Date.parse(cached.scannedAt) >= REFRESH_INTERVAL_MS;
+  const stale = cached?.version !== 5 || !Number.isFinite(Date.parse(cached.scannedAt)) || Date.now() - Date.parse(cached.scannedAt) >= REFRESH_INTERVAL_MS;
   if (stale && !inflight.has(fileFor(projectPath)) && (!failures.has(fileFor(projectPath)) || options.force)) {
     void refreshProjectTodos(projectPath, options).catch(error => failures.set(fileFor(projectPath), error.message));
   }
@@ -124,7 +125,7 @@ export async function getActiveTodosForSession(sessionId) {
   for (const filename of files.filter(name => /^[a-f0-9]{64}\.json$/.test(name))) {
     try {
       const data = JSON.parse(await readFile(join(LOCAL_DATA_DIR, filename), 'utf8'));
-      if (![3, 4].includes(data.version)) continue;
+      if (![3, 4, 5].includes(data.version)) continue;
       for (const todo of data.todos ?? []) if (todo.activeSessionId === sessionId && todo.status === 'open') active.push({ projectPath: data.projectPath, todo });
     } catch {}
   }

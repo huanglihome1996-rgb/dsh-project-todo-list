@@ -7,6 +7,7 @@ import { promisify } from 'node:util';
 import { classifyCandidates } from './classifier.mjs';
 import { buildTodoPrompt } from './prompt.mjs';
 import { collectBranchSources } from './branch-sources.mjs';
+import { extractDocumentCandidates } from './document-candidates.mjs';
 
 const exec = promisify(execFile);
 const DOC_NAMES = /^(readme|contributing|roadmap|plan|tasks?|todo|issues?|changelog|design|spec|architecture|project|项目|计划|任务|待办|需求|分工|进度)(\.|$|-|_)/i;
@@ -117,20 +118,21 @@ export async function scanProject(projectPath, options = {}) {
   const identity = guessIdentity(primaryFiles, gitName, gitEmail, aliases);
   if (ghLogin) identity.githubLogin = ghLogin;
   // Prefer committed default-branch docs; working-tree documents are fallback.
-  const documentRows = taskLines(primaryFiles, identities);
+  const documentRows = extractDocumentCandidates(primaryFiles, identities);
   const issuesPromise = githubIssues(root, remote, identities);
   const candidatesFrom = rows => rows.slice(0, 60).map(row => ({
     id: createHash('sha256').update(`${root}\n${row.source}\n${row.title}`).digest('hex').slice(0, 20),
     title: row.title, source: row.source,
     context: [row.context, ...branches.auxiliary.filter(branch => branch.context.toLowerCase().includes(row.title.toLowerCase().slice(0, 8)))
       .slice(0, 2).map(branch => `辅助分支 ${branch.branch}（本人提交）：${branch.summary}`)].join('\n').slice(0, 2500),
-    explicitAssignee: row.assigned, issue: row.issue
+    explicitAssignee: row.explicitAssignee ?? row.assigned, issue: row.issue, kind: row.kind ?? 'issue', heading: row.heading
   }));
   const branchContext = { mainBranch: branches.mainBranch, currentBranch: branches.currentBranch,
+    mainProgress: branches.branchHints.filter(item => item.branch === branches.mainBranch).slice(0, 1),
     auxiliary: branches.auxiliary.slice(0, 4).map(({ branch, summary, paths, context }) => ({ branch, summary, paths: paths.slice(0, 10), context: context.slice(0, 300) })) };
   const makeTodos = relevant => relevant.map(row => {
     const todo = { id: row.id, title: row.title,
-      summary: `${row.source} · ${row.reason}`,
+      summary: `${row.kind === 'feature' ? '功能版本' : row.kind === 'task' ? '项目文档' : 'Issue'} · ${row.source} · ${row.reason}`,
       source: row.issue ? `${row.source} · issue #${row.issue}` : row.source,
       status: 'open', progress: row.progress, priority: row.priority, effort: row.effort,
       confidence: row.ownershipConfidence, ownerEvidence: row.ownerEvidence, actionEvidence: row.actionEvidence };
@@ -148,7 +150,7 @@ export async function scanProject(projectPath, options = {}) {
       if (verified.length && typeof options.onPartial === 'function') await options.onPartial(makeTodos(accepted).sort((a, b) => ranks[a.priority] - ranks[b.priority]));
     }
   };
-  await analyze(documentRows.slice(0, 45));
+  await analyze(documentRows.slice(0, 60));
   const issues = await issuesPromise;
   await analyze(issues.slice(0, 15));
   const todos = makeTodos(accepted).sort((a, b) => ranks[a.priority] - ranks[b.priority]);

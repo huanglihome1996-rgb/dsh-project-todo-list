@@ -6,10 +6,11 @@ const exec = promisify(execFile);
 const MAX_BRANCHES = 20;
 const MAX_DOC_BYTES = 48 * 1024;
 const MAX_TOTAL_BYTES = 256 * 1024;
-const DEFAULT_FILES = 16;
+const DEFAULT_FILES = 32;
 const MAX_FILES = 40;
 const TEXT_FILE = /\.(?:md|mdx|txt|rst|adoc|ya?ml)$/i;
-const ROOT_DOC = /^(?:readme|contributing|roadmap|plan|todo|tasks?|design|spec|architecture)(?:[._-]|$)/i;
+const NAMED_DOC = /^(?:readme|contributing|roadmap|plan|planning|todo|tasks?|design|spec|architecture|project|requirements?|changelog|release(?:notes?)?|milestones?|versions?|features?|项目|计划|任务|待办|需求|分工|进度|版本|功能|特性|发布|里程碑|设计|架构)(?:[._-]|$)/i;
+const DOC_DIR = /^(?:docs?|documentation|planning|plans?|versions?|features?|releases?|milestones?|roadmaps?|项目|计划|任务|需求|版本|功能|特性|发布|里程碑)$/i;
 
 // All calls are argument-vector based; neither branch names nor tree paths enter a shell.
 async function git(root, args, maxBuffer = 512 * 1024) {
@@ -32,8 +33,9 @@ function docRank(path) {
   const parts = path.split('/');
   const name = parts.at(-1);
   if (parts.length === 1 && /^readme(?:[._-]|$)/i.test(name)) return 0;
-  if (parts.length === 1 && ROOT_DOC.test(name)) return 1;
-  if (/^(?:docs?|documentation|planning)$/i.test(parts[0])) return /^readme(?:[._-]|$)/i.test(name) ? 2 : 3;
+  if (parts.length === 1 && NAMED_DOC.test(name)) return 1;
+  if (parts.length > 1 && DOC_DIR.test(parts[0])) return NAMED_DOC.test(name) ? 2 : 3;
+  if (NAMED_DOC.test(name) && parts.length <= 3) return 4;
   return -1;
 }
 function limitedFiles(value) {
@@ -143,5 +145,13 @@ export async function collectBranchSources(root, { identities = [], maxFiles } =
     auxiliary.push({ branch, authorMatch: true, summary, paths, context });
   }
   const branchHints = auxiliary.filter(source => source.branch === currentBranch).map(({ branch, summary, paths, context }) => ({ branch, summary, paths, context }));
+  // A small hint from main's recent history supplements document-derived tasks;
+  // it is contextual evidence, not an unverified task candidate.
+  const recentMain = clean(await git(root, ['log', '-4', '--format=%s', mainRef, '--'], 4 * 1024));
+  if (recentMain && mainBranch) branchHints.push({
+    branch: mainBranch, summary: recentMain.split('\n')[0].slice(0, 300),
+    paths: mainFiles.slice(0, 8).map(file => file.path),
+    context: recentMain.slice(0, 1200)
+  });
   return { mainBranch, currentBranch, mainFiles, auxiliary, branchHints };
 }
