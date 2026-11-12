@@ -15,7 +15,7 @@
 
 ## 安装
 
-要求 DSH `0.2.2-rc.1`、Node.js ≥22，使用带 Web GUI 的 DSH profile。建议在 **插件市场 → 添加索引** 中填入本仓库的市场索引 URL（发布版本后见下方），搜索「项目待办列表」并安装；也可以在插件管理器中使用 GitHub Release 页面标明的固定提交版本进行安装。Git 安装会按索引锁定提交，不依赖浮动分支。
+要求 DSH `0.2.2-rc.1`、Node.js ≥22，使用带 Web GUI 的 DSH profile。先在 DSH 的 **插件 → 实验性插件** 打开 **自定义插件索引**，然后进入 **发现 → 添加索引**，填入本仓库索引 URL，搜索「项目待办列表」并安装。该索引是社区维护的，不是官方默认市场；其他用户需要自行添加。也可以在插件管理器中使用 GitHub Release 对应的固定提交版本进行安装。Git 安装会按索引锁定提交，不依赖浮动分支。
 
 市场索引：`https://raw.githubusercontent.com/huanglihome1996-rgb/dsh-project-todo-list/main/market/index.json`
 
