@@ -60,7 +60,10 @@ export function apply(ctx, config = {}) {
         }
         const body = await request.json();
         if (typeof body?.projectPath !== 'string' || !body.projectPath.trim()) return reply({ error: '缺少 projectPath' }, 400);
-        if (request.method === 'POST') return reply(await refreshProjectTodos(body.projectPath, options));
+        if (request.method === 'POST') {
+          void refreshProjectTodos(body.projectPath, options).catch(error => ctx.logger.warn(`project-todo refresh: ${error?.message ?? error}`));
+          return reply(await getProjectTodos(body.projectPath, options));
+        }
         if (request.method === 'PATCH') {
           if (typeof body.id !== 'string' || body.id.length > 80) return reply({ error: '无效待办 ID' }, 400);
           return reply(await setTodoStatus(body.projectPath, body.id, body.status));

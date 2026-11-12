@@ -6,6 +6,8 @@ import { LOCAL_DATA_DIR, scanProject } from './scanner.mjs';
 const fileFor = projectPath => join(LOCAL_DATA_DIR, `${createHash('sha256').update(resolve(projectPath).toLowerCase()).digest('hex')}.json`);
 export const REFRESH_INTERVAL_MS = 12 * 60 * 60 * 1000;
 const inflight = new Map();
+const progress = new Map();
+const failures = new Map();
 const mutations = new Map();
 async function serialize(path, action) {
   const key = fileFor(path);
@@ -31,37 +33,60 @@ async function save(path, value) {
   await rename(temporary, filename);
   return value;
 }
+function view(path, cached) {
+  const key = fileFor(path);
+  const partial = progress.get(key);
+  const data = cached ?? { projectPath: path, projectName: path.split(/[\\/]/).at(-1), todos: [], scannedAt: null };
+  const previous = new Map(data.todos.map(todo => [todo.id, todo]));
+  const verified = partial?.map(todo => ({ ...todo,
+    status: previous.get(todo.id)?.status ?? todo.status,
+    progress: previous.get(todo.id)?.progress === 'in_progress' ? 'in_progress' : todo.progress,
+    activeSessionId: previous.get(todo.id)?.activeSessionId })) ?? [];
+  // Keep the previously verified list visible while scanning: a later batch can
+  // discover a higher-priority item without making existing items disappear.
+  const todos = partial ? [...verified, ...data.todos.filter(todo => !partial.some(item => item.id === todo.id))] : [...data.todos];
+  const ranks = { urgent: 0, high: 1, normal: 2, low: 3 };
+  todos.sort((a, b) => (ranks[a.priority] ?? 4) - (ranks[b.priority] ?? 4));
+  return { ...data, todos, refreshing: inflight.has(key), ...(failures.has(key) ? { refreshError: failures.get(key) } : {}) };
+}
 export async function getProjectTodos(path, options = {}) {
   const projectPath = resolve(path);
   const cached = await load(projectPath);
-  if (cached?.version === 4 && Date.now() - Date.parse(cached.scannedAt) < REFRESH_INTERVAL_MS) return cached;
-  try { return await refreshProjectTodos(projectPath, options); }
-  catch (error) { if (cached?.version === 4) return { ...cached, refreshError: error.message }; throw error; }
+  const stale = cached?.version !== 4 || !Number.isFinite(Date.parse(cached.scannedAt)) || Date.now() - Date.parse(cached.scannedAt) >= REFRESH_INTERVAL_MS;
+  if (stale && !inflight.has(fileFor(projectPath)) && (!failures.has(fileFor(projectPath)) || options.force)) {
+    void refreshProjectTodos(projectPath, options).catch(error => failures.set(fileFor(projectPath), error.message));
+  }
+  return view(projectPath, cached);
 }
 export async function refreshProjectTodos(path, options = {}) {
   const projectPath = resolve(path);
   const key = fileFor(projectPath);
   if (inflight.has(key)) return inflight.get(key);
-  const run = serialize(projectPath, async () => {
-    const old = await load(projectPath);
-    const next = await scanProject(projectPath, options);
-    const previous = new Map(old?.todos?.map(todo => [todo.id, todo]) ?? []);
-    next.todos = next.todos.map(todo => {
-      const prior = previous.get(todo.id);
-      return { ...todo, status: prior?.status ?? todo.status,
-        progress: prior?.progress === 'in_progress' ? 'in_progress' : todo.progress,
-        activeSessionId: prior?.activeSessionId, completion: prior?.completion };
+  failures.delete(key);
+  const run = Promise.resolve().then(async () => {
+    const onPartial = async todos => { progress.set(key, todos); };
+    const next = await scanProject(projectPath, { ...options, onPartial });
+    return serialize(projectPath, async () => {
+      const current = await load(projectPath);
+      const previous = new Map(current?.todos?.map(todo => [todo.id, todo]) ?? []);
+      next.todos = next.todos.map(todo => {
+        const prior = previous.get(todo.id);
+        return { ...todo, status: prior?.status ?? todo.status,
+          progress: prior?.progress === 'in_progress' ? 'in_progress' : todo.progress,
+          activeSessionId: prior?.activeSessionId, completion: prior?.completion };
+      });
+      for (const prior of previous.values()) {
+        if (prior.activeSessionId && prior.status === 'open' && !next.todos.some(todo => todo.id === prior.id)) next.todos.push(prior);
+      }
+      const ranks = { urgent: 0, high: 1, normal: 2, low: 3 };
+      next.todos.sort((a, b) => (ranks[a.priority] ?? 4) - (ranks[b.priority] ?? 4));
+      return save(projectPath, next);
     });
-    // A temporarily missing source must not erase a task already being worked on.
-    for (const prior of previous.values()) {
-      if (prior.activeSessionId && prior.status === 'open' && !next.todos.some(todo => todo.id === prior.id)) next.todos.push(prior);
-    }
-    const ranks = { urgent: 0, high: 1, normal: 2, low: 3 };
-    next.todos.sort((a, b) => (ranks[a.priority] ?? 4) - (ranks[b.priority] ?? 4));
-    return save(projectPath, next);
   });
   inflight.set(key, run);
-  try { return await run; } finally { inflight.delete(key); }
+  try { return await run; }
+  catch (error) { failures.set(key, error.message); throw error; }
+  finally { inflight.delete(key); progress.delete(key); }
 }
 export async function activateTodo(path, id, sessionId) {
   if (typeof sessionId !== 'string' || !sessionId.trim() || sessionId.length > 180) throw new Error('无效会话 ID');

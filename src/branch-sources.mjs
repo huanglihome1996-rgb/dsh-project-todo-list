@@ -125,8 +125,11 @@ export async function collectBranchSources(root, { identities = [], maxFiles } =
   }
   const currentBranch = current || mainBranch; // Detached HEAD still has usable main/default documentation.
   const cap = limitedFiles(maxFiles);
-  const mainFiles = await readDocs(root, mainRef, cap);
-  const refs = clean(await git(root, ['for-each-ref', '--sort=-committerdate', `--count=${MAX_BRANCHES}`, '--format=%(refname)', 'refs/heads'], 32 * 1024));
+  const [mainFiles, refsBuffer] = await Promise.all([
+    readDocs(root, mainRef, cap),
+    git(root, ['for-each-ref', '--sort=-committerdate', `--count=${MAX_BRANCHES}`, '--format=%(refname)', 'refs/heads'], 32 * 1024)
+  ]);
+  const refs = clean(refsBuffer);
   const allowed = normalIdentities(identities);
   const auxiliary = [];
   for (const ref of refs.split('\n').map(s => s.trim())) {

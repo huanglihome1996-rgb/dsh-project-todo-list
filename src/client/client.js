@@ -46,7 +46,29 @@ window.__ModuleLoader__.load({
           .finally(() => { if (!controller.signal.aborted) setLoading(false); });
         return () => controller.abort();
       }, [projectPath, version, fetchImpl]);
+      useEffect(() => {
+        if (!projectPath || data?.refreshing !== true) return undefined;
+        const controller = new AbortController();
+        let attempts = 0;
+        let polling = false;
+        const poll = () => {
+          if (polling) return;
+          if (attempts >= 30) { setError('更新项目待办超时，请点击重试'); return; }
+          polling = true; attempts += 1;
+          fetchImpl('/api/project-todo?projectPath=' + encodeURIComponent(projectPath), { signal: controller.signal })
+            .then(async response => {
+              if (!response.ok) throw new Error('无法更新项目待办（' + response.status + '）');
+              return response.json();
+            })
+            .then(result => { if (!controller.signal.aborted) setData(result); })
+            .catch(cause => { if (!controller.signal.aborted) setError(cause.message || '无法更新项目待办'); })
+             .finally(() => { polling = false; });
+        };
+        const timer = setInterval(poll, 2000);
+        return () => { clearInterval(timer); controller.abort(); };
+      }, [projectPath, data?.refreshing, fetchImpl]);
       if (!projectPath) return null;
+      const effectiveRefreshing = refreshing || data?.refreshing === true;
       const todos = Array.isArray(data?.todos) ? data.todos : [];
       const priorityRank = { urgent: 0, high: 1, normal: 2, low: 3 };
       const priorityLabel = { urgent: '紧急', high: '高', normal: '普通', low: '低' };
@@ -89,11 +111,12 @@ window.__ModuleLoader__.load({
           h('span', { className: 'project-todo-heading' }, '◉  项目待办'),
           h('span', { className: 'project-todo-count' }, pending.length + ' 项待办'),
           h('span', { className: 'project-todo-spacer' }),
+           effectiveRefreshing && h('span', { className: 'project-todo-count', role: 'status' }, '更新中'),
           pending.length > 1 && h('button', { type: 'button', className: 'project-todo-control', 'aria-expanded': expanded, onClick: () => setExpanded(value => !value) }, expanded ? '收起待办  ▴' : '查看待办  ▾'),
-          h('button', { type: 'button', className: 'project-todo-control', onClick: refresh, disabled: refreshing || !!activating, 'aria-label': '刷新项目待办' }, refreshing ? '刷新中…' : '⟳')),
+          h('button', { type: 'button', className: 'project-todo-control', onClick: refresh, disabled: effectiveRefreshing || !!activating, 'aria-label': '刷新项目待办' }, effectiveRefreshing ? '更新中…' : '⟳')),
         error && h('p', { className: 'project-todo-error', role: 'alert' }, error, ' ', h('button', { type: 'button', onClick: () => setVersion(v => v + 1) }, '重试')),
         loading && !data && h('p', { className: 'project-todo-state', role: 'status' }, '正在加载项目待办…'),
-        !loading && !error && pending.length === 0 && h('p', { className: 'project-todo-state' }, '暂无待处理项目待办'),
+        !loading && !error && pending.length === 0 && h('p', { className: 'project-todo-state' }, effectiveRefreshing ? '正在分析优先待办…' : '暂无待处理项目待办'),
         pending.length > 0 && h('div', { className: 'project-todo-body' },
           h('p', { className: 'project-todo-hint' }, expanded ? '我的下一步待办' : '推荐先处理'),
           h('ul', { className: 'project-todo-list' }, visible.map(todo => {

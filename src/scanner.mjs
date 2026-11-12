@@ -104,21 +104,22 @@ export async function scanProject(projectPath, options = {}) {
   const root = resolve(projectPath);
   if (!(await stat(root)).isDirectory()) throw new Error('项目路径不是目录');
   // Only read project files. Persistent data is stored by store.mjs under DSH_HOME.
-  const [files, gitName, gitEmail, remote, ghLogin, branch] = await Promise.all([
-    docs(root), git(root, 'config', 'user.name'), git(root, 'config', 'user.email'), git(root, 'remote', 'get-url', 'origin'),
-    exec('gh', ['api', 'user', '--jq', '.login'], { timeout: 3500, windowsHide: true }).then(result => result.stdout.trim()).catch(() => ''),
+  const [gitName, gitEmail, remote, ghLogin, branch] = await Promise.all([
+    git(root, 'config', 'user.name'), git(root, 'config', 'user.email'), git(root, 'remote', 'get-url', 'origin'),
+    exec('gh', ['api', 'user', '--jq', '.login'], { timeout: 2000, windowsHide: true }).then(result => result.stdout.trim()).catch(() => ''),
     git(root, 'branch', '--show-current')
   ]);
   const aliases = [...normalizedIdentity(options), ghLogin.toLowerCase()].filter(Boolean);
   const identities = [...aliases, gitName?.toLowerCase(), gitEmail?.toLowerCase()].filter(Boolean);
-  const identity = guessIdentity(files, gitName, gitEmail, aliases);
-  if (ghLogin) identity.githubLogin = ghLogin;
   const branches = await collectBranchSources(root, { identities });
-  // Prefer the committed default-branch plan. Working-tree documents are fallback
-  // only when the repository has no readable default-branch project documents.
+  const files = branches.mainFiles.length ? [] : await docs(root);
   const primaryFiles = branches.mainFiles.length ? branches.mainFiles : files;
-  const lines = [...taskLines(primaryFiles, identities), ...await githubIssues(root, remote, identities)];
-  const candidates = lines.slice(0, 60).map(row => ({
+  const identity = guessIdentity(primaryFiles, gitName, gitEmail, aliases);
+  if (ghLogin) identity.githubLogin = ghLogin;
+  // Prefer committed default-branch docs; working-tree documents are fallback.
+  const documentRows = taskLines(primaryFiles, identities);
+  const issuesPromise = githubIssues(root, remote, identities);
+  const candidatesFrom = rows => rows.slice(0, 60).map(row => ({
     id: createHash('sha256').update(`${root}\n${row.source}\n${row.title}`).digest('hex').slice(0, 20),
     title: row.title, source: row.source,
     context: [row.context, ...branches.auxiliary.filter(branch => branch.context.toLowerCase().includes(row.title.toLowerCase().slice(0, 8)))
@@ -127,16 +128,30 @@ export async function scanProject(projectPath, options = {}) {
   }));
   const branchContext = { mainBranch: branches.mainBranch, currentBranch: branches.currentBranch,
     auxiliary: branches.auxiliary.slice(0, 4).map(({ branch, summary, paths, context }) => ({ branch, summary, paths: paths.slice(0, 10), context: context.slice(0, 300) })) };
-  const relevant = await classifyCandidates({ identity, candidates, classify: options.classify, branchContext });
-  options = { ...options, branch };
-  const todos = relevant.map(row => {
+  const makeTodos = relevant => relevant.map(row => {
     const todo = { id: row.id, title: row.title,
       summary: `${row.source} · ${row.reason}`,
       source: row.issue ? `${row.source} · issue #${row.issue}` : row.source,
       status: 'open', progress: row.progress, priority: row.priority, effort: row.effort,
       confidence: row.ownershipConfidence, ownerEvidence: row.ownerEvidence, actionEvidence: row.actionEvidence };
-    return { ...todo, recommendedPrompt: buildTodoPrompt(todo, { branch: options.branch }) };
+    return { ...todo, recommendedPrompt: buildTodoPrompt(todo, { branch }) };
   });
+  const ranks = { urgent: 0, high: 1, normal: 2, low: 3 };
+  const accepted = [];
+  // Prioritize short document batches before waiting for the Issue CLI/network.
+  // Every displayed slice has been verified by AI; raw candidates never leak.
+  const analyze = async rows => {
+    for (let i = 0; i < rows.length; i += 6) {
+      const batch = candidatesFrom(rows.slice(i, i + 6));
+      const verified = await classifyCandidates({ identity, candidates: batch, classify: options.classify, branchContext });
+      accepted.push(...verified);
+      if (verified.length && typeof options.onPartial === 'function') await options.onPartial(makeTodos(accepted).sort((a, b) => ranks[a.priority] - ranks[b.priority]));
+    }
+  };
+  await analyze(documentRows.slice(0, 45));
+  const issues = await issuesPromise;
+  await analyze(issues.slice(0, 15));
+  const todos = makeTodos(accepted).sort((a, b) => ranks[a.priority] - ranks[b.priority]);
   return { projectPath: root, projectName: basename(root), branch: branch || null, mainBranch: branches.mainBranch,
     identity, todos, scannedAt: new Date().toISOString(), sources: primaryFiles.map(file => file.path), remote: remote || null };
 }
